@@ -1,0 +1,3 @@
+include:
+  - path: .seed/gitops/cluster/docker-compose.yaml
+  - path: .seed/gitops/cluster/docker-compose.local.yaml

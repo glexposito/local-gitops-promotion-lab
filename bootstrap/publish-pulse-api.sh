@@ -1,21 +1,23 @@
-#!/usr/bin/env bash
-# Replaces the GitHub Actions build for the local-only profile.
-set -Eeuo pipefail
+#!/bin/sh
+# Runs inside the Compose publisher container, never on the host.
+set -eu
 
-template_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-app_dir="${1:-"$template_root/repos/pulse-api"}"
-registry="localhost:5000"
+app_dir=/lab/repos/pulse-api
+gitea_push_url=http://local:local-123@gitea:3000/local/pulse-api.git
+registry=localhost:5000
 
 if [ ! -d "$app_dir/.git" ]; then
-  echo "pulse-api checkout not found at $app_dir" >&2
-  exit 1
-fi
-if [ -n "$(git -C "$app_dir" status --porcelain)" ]; then
-  echo "Commit or discard pulse-api changes before publishing." >&2
+  echo 'pulse-api checkout not found. Start the lab first.' >&2
   exit 1
 fi
 
-git -C "$app_dir" push local main
+git config --global --add safe.directory "$app_dir"
+if [ -n "$(git -C "$app_dir" status --porcelain)" ]; then
+  echo 'Commit or discard pulse-api changes before publishing.' >&2
+  exit 1
+fi
+
+git -C "$app_dir" push "$gitea_push_url" main
 tag="sha-$(git -C "$app_dir" rev-parse --short=7 HEAD)"
 
 docker build -t "$registry/pulse-api:$tag" "$app_dir"

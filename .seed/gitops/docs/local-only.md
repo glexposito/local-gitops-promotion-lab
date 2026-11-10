@@ -6,7 +6,7 @@ network as the four k3s clusters.
 
 ```
 pulse-api checkout
-  |  bootstrap/publish-pulse-api.sh
+  |  docker compose --profile publish run pulse-api-publisher
   v
 registry.local:5000 <-- Kargo Warehouse
   |
@@ -32,26 +32,26 @@ These similarly named paths have distinct purposes:
 
 ## Start
 
-Prerequisites: Docker with Compose, `git`, `curl`, and `perl`. This profile is
-deliberately local and insecure:
+Prerequisite: Docker Desktop or Docker Engine with modern Compose. Git is only
+needed to commit from a terminal; the setup tooling stays in containers. This
+profile is deliberately local and insecure:
 Gitea listens on `localhost:3000` with the seeded `local` / `local-123`
 account, and the registry is plain HTTP on `localhost:5000`.
 
 ```bash
-./bootstrap/up.sh
+docker compose up -d
 ```
 
-The script starts Gitea and the registry, seeds both repositories, then starts
-the clusters. First startup takes a few minutes. Argo CD is at
-`https://localhost:9000` and Kargo is at `https://localhost:9001`.
+The `local-bootstrap` Compose service creates the two local Git repositories,
+seeds Gitea, and exits before Argo CD's bootstrap can start. First startup
+takes a few minutes. Argo CD is at `https://localhost:9000` and Kargo is at
+`https://localhost:9001`.
 
-Do not rerun `bootstrap/seed-repositories.sh` after promotions have begun: it is a
-one-time initializer and intentionally refuses to overwrite an existing local
-repository. To reset the lab entirely:
+The bootstrap is idempotent after a successful first run: it keeps the
+repositories, Gitea data, and promotion history. To reset the lab entirely:
 
 ```bash
-cd gitops/cluster
-docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile local down -v
+docker compose down -v
 ```
 
 ## Publish a build
@@ -62,11 +62,11 @@ Edit and commit a change in the generated application worktree, then run:
 cd repos/pulse-api
 git add . && git commit -m 'Change pulse-api'
 cd ../..
-./bootstrap/publish-pulse-api.sh
+docker compose --profile publish run --rm pulse-api-publisher
 ```
 
-The script pushes that commit to local Gitea, builds the app and Playwright
-images, tags both `sha-<commit>`, and pushes both to the local registry.
+The publisher service pushes that commit to local Gitea, builds the app and
+Playwright images, tags both `sha-<commit>`, and pushes both to the local registry.
 Kargo discovers the pair and promotes it automatically through all stages.
 
 The publisher pushes via `localhost:5000`; Kargo and the k3s nodes use the

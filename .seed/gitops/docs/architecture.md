@@ -8,13 +8,15 @@ workload clusters, one per promotion stage. Keeping Argo CD on its own
 cluster means losing a workload cluster never takes down the thing that
 manages it.
 
-`cd cluster && docker compose up -d` does everything:
+From the outer lab template, `docker compose up -d` does everything:
 
-1. Each k3s container auto-applies its `manifests/<cluster>/`, which is
+1. The Compose `local-bootstrap` service initializes the independent GitOps
+   and pulse-api worktrees, seeds Gitea, then exits.
+2. Each k3s container auto-applies its `manifests/<cluster>/`, which is
    bind-mounted in. On the workload clusters that includes the
    `argocd-manager` ServiceAccount Argo CD will use.
-2. k3s installs Argo CD on management from `cluster/argocd-install.yaml`.
-3. `cluster/bootstrap.sh` (the `argocd-bootstrap` service) registers
+3. k3s installs Argo CD on management from `cluster/argocd-install.yaml`.
+4. `cluster/bootstrap.sh` (the `argocd-bootstrap` service) registers
    internal/stg/prod with Argo CD, labelled `role=workload` and
    `stage=<cluster>`, then applies `argocd/root-app.yaml`. From then on,
    Argo CD manages everything from git.

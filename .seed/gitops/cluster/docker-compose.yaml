@@ -4,8 +4,8 @@
 # Compose service: Argo CD installs it on management (argocd/kargo/).
 #
 # Nothing in cluster/ is read by Argo CD - everything it syncs lives outside
-# this directory (argocd/, apps/, manifests/). Run from here:
-#   cd cluster && docker compose up -d
+# this directory (argocd/, apps/, manifests/). The outer template's
+# compose.yaml includes this file; run `docker compose up -d` from its root.
 
 # Fixed project name, so volumes stay local-gitops-promotion-lab_* no matter which
 # directory this file lives in.

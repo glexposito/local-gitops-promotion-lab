@@ -1,13 +1,13 @@
-# Opt-in local-only services. Start them together with the base stack using:
-#   docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile local up -d
+# Local-only services. The root compose.yaml includes this file, so first boot
+# is simply: docker compose up -d
 #
-# The fixed addresses are also declared in
-# manifests/management/05-cluster-dns.yaml so Argo CD and Kargo pods can
-# reach these Docker services from inside the management cluster.
+# local-bootstrap runs once in a Linux container. It writes the two generated
+# Git worktrees into the host bind mount, seeds Gitea, and exits. Argo CD's
+# bootstrap waits for it, so it can never try to clone GitOps before Gitea has
+# the initial commit.
 services:
   gitea:
     image: docker.gitea.com/gitea:28.3.0
-    profiles: [local]
     environment:
       GITEA__database__DB_TYPE: sqlite3
       GITEA__server__DOMAIN: gitea.local
@@ -24,9 +24,29 @@ services:
         ipv4_address: 172.28.0.105
         aliases: [gitea.local]
 
+  # Gitea has no environment variable for creating its first admin. This
+  # short-lived companion uses the same data volume and the official image's
+  # CLI; it is not a host-side docker exec.
+  gitea-init:
+    image: docker.gitea.com/gitea:28.3.0
+    depends_on:
+      gitea:
+        condition: service_started
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        until test -f /data/gitea/conf/app.ini; do sleep 1; done
+        until gitea admin user list | grep -q 'local@example.test'; do
+          gitea admin user create --admin --username local --password local-123 \
+            --email local@example.test --must-change-password=false || true
+          sleep 1
+        done
+    volumes:
+      - gitea-data:/data
+
   registry:
     image: docker.io/library/registry:3.0.0
-    profiles: [local]
     ports:
       - "5000:5000"
     volumes:
@@ -36,9 +56,41 @@ services:
         ipv4_address: 172.28.0.106
         aliases: [registry.local]
 
+  local-bootstrap:
+    build:
+      context: ../../../bootstrap
+    image: local-gitops-promotion-lab-tools
+    depends_on:
+      gitea-init:
+        condition: service_completed_successfully
+    entrypoint: ["/usr/local/bin/local-bootstrap"]
+    volumes:
+      - ../../../:/lab
+    networks:
+      - k8s-management
+
+  # Run after committing in repos/pulse-api. The Docker client talks to the
+  # host daemon through its socket, so builds work on Docker Desktop too.
+  pulse-api-publisher:
+    image: local-gitops-promotion-lab-tools
+    profiles: [publish]
+    depends_on:
+      registry:
+        condition: service_started
+    entrypoint: ["/usr/local/bin/publish-pulse-api"]
+    volumes:
+      - ../../../:/lab
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - k8s-management
+
   # The base bootstrap is reused, but its Git source and Kargo write
-  # credential become the local Gitea repository.
+  # credential become the local Gitea repository. It waits for the one-shot
+  # bootstrap so this local repository exists before Argo CD starts syncing.
   argocd-bootstrap:
+    depends_on:
+      local-bootstrap:
+        condition: service_completed_successfully
     environment:
       GITOPS_REPO_URL: http://gitea.local:3000/local/gitops.git
       KARGO_GIT_REPO_URL: http://gitea.local:3000/local/gitops.git

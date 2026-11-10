@@ -28,7 +28,8 @@ stage runs the e2e image against the pulse-api it just deployed there. Each
 stage promotes automatically after the preceding stage's verification passes.
 
 Commit in `repos/pulse-api/`, then run
-`./bootstrap/publish-pulse-api.sh` from the lab root. The script pushes this
+`docker compose --profile publish run --rm pulse-api-publisher` from the lab
+root. The publisher container pushes this
 repository to local Gitea and publishes the app and e2e images to the local
 registry for Kargo to promote. It is intentionally the small local stand-in
 for a CI runner; no GitHub account or GitHub Actions is involved.

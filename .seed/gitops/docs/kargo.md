@@ -12,7 +12,7 @@ Kargo UI: **https://localhost:9001** (`admin` / `123`).
 ```text
 repos/pulse-api commit
   │
-  ├─ bootstrap/publish-pulse-api.sh pushes local/pulse-api to Gitea
+  ├─ Compose publisher pushes local/pulse-api to Gitea
   └─ builds and pushes the matching app + e2e images to registry.local:5000
        │
        ▼
@@ -54,7 +54,8 @@ Project falls back to.
 ## Local profile setup
 
 There is no GitHub deploy key, GitHub package, or external image registry in
-this profile. `bootstrap/up.sh` creates Gitea's `local` user and repositories,
+this profile. The `local-bootstrap` Compose service creates Gitea's `local`
+user and repositories,
 and the Compose override gives the bootstrap container Gitea HTTP credentials.
 It creates Kargo's `gitops-poc-git` credential from those values.
 
@@ -108,7 +109,8 @@ logs; this POC has no artifact storage.
 ## Try it
 
 1. Commit a change in `repos/pulse-api/`.
-2. From the outer template root, run `./bootstrap/publish-pulse-api.sh`.
+2. From the outer template root, run
+   `docker compose --profile publish run --rm pulse-api-publisher`.
 3. Within a few minutes a new Freight appears in the Kargo UI and moves
    through internal, stg, and prod automatically.
 4. Each promotion creates a `pulse-api: promote sha-… to <stage>` commit in
