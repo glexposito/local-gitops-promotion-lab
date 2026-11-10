@@ -23,8 +23,17 @@ jobs:
           git checkout --detach "$GITHUB_SHA"
           tag="sha-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
           echo "TAG=$tag" >> "$GITHUB_ENV"
-          docker build -t "localhost:5000/pulse-api:$tag" .
-          docker build -t "localhost:5000/pulse-api-e2e:$tag" e2e
+          # Kargo's NewestBuild picks by creation time. With the layer cache
+          # a rebuild keeps the cached timestamp, so a new commit can look as
+          # old as the last one and never become Freight. Kargo trusts the
+          # later of that and this label, so stamp the real build time.
+          created="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          docker build -t "localhost:5000/pulse-api:$tag" \
+            --label "org.opencontainers.image.created=$created" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" .
+          docker build -t "localhost:5000/pulse-api-e2e:$tag" \
+            --label "org.opencontainers.image.created=$created" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" e2e
 
       - name: Push images
         run: |
