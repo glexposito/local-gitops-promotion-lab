@@ -26,6 +26,12 @@ services:
       - "3000:3000"
     volumes:
       - gitea-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:3000/api/healthz"]
+      interval: 10s
+      start_interval: 2s
+      start_period: 2m
+      retries: 3
     networks:
       k8s-management:
         ipv4_address: 172.28.0.105
@@ -40,7 +46,7 @@ services:
     user: git
     depends_on:
       gitea:
-        condition: service_started
+        condition: service_healthy
     entrypoint:
       - /bin/sh
       - -ec
@@ -67,12 +73,48 @@ services:
     networks:
       - k8s-management
 
+  # Kargo lists registry tags over HTTPS only (insecureSkipTLSVerify skips
+  # certificate checks, it does not allow plain HTTP), so the registry serves
+  # TLS with a self-signed certificate generated on first start. It lives in a
+  # volume, so no key is committed and `down -v` discards it with the lab.
+  registry-cert:
+    image: docker.io/alpine/openssl:3.5.4
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if [ -s /certs/registry.crt ] && [ -s /certs/registry.key ]; then
+          exit 0
+        fi
+        openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
+          -keyout /certs/registry.key -out /certs/registry.crt \
+          -subj /CN=registry.local \
+          -addext subjectAltName=DNS:registry.local,DNS:localhost,IP:127.0.0.1
+    volumes:
+      - registry-certs:/certs
+
+  # k3s nodes trust it via registries.yaml (insecure_skip_verify), Kargo via
+  # insecureSkipTLSVerify, and the host Docker daemon pushing to localhost:5000
+  # because Docker treats localhost registries as insecure by default.
   registry:
     image: docker.io/library/registry:3.0.0
+    depends_on:
+      registry-cert:
+        condition: service_completed_successfully
+    environment:
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/registry.crt
+      REGISTRY_HTTP_TLS_KEY: /certs/registry.key
     ports:
       - "5000:5000"
     volumes:
       - registry-data:/var/lib/registry
+      - registry-certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--no-check-certificate", "-O", "/dev/null", "https://localhost:5000/v2/"]
+      interval: 10s
+      start_interval: 2s
+      start_period: 1m
+      retries: 3
     networks:
       k8s-management:
         ipv4_address: 172.28.0.106
@@ -99,6 +141,8 @@ services:
     depends_on:
       local-bootstrap:
         condition: service_completed_successfully
+      registry:
+        condition: service_healthy
     environment:
       CONFIG_FILE: /config.yaml
       GITEA_INSTANCE_URL: http://gitea:3000
@@ -126,7 +170,31 @@ services:
       KARGO_GIT_USERNAME: local
       KARGO_GIT_PASSWORD: local-123
 
+  # Lab readiness: healthy only once pulse-api is deployed on internal, i.e.
+  # the whole flow works (build -> registry -> Kargo -> Argo CD). Container
+  # health alone can't say that. `docker compose up -d --wait` blocks on it;
+  # `docker compose logs -f lab-ready` shows which phase startup is in.
+  lab-ready:
+    image: docker.io/rancher/k3s:v1.36.2-k3s1
+    depends_on:
+      argocd-bootstrap:
+        condition: service_completed_successfully
+    entrypoint: ["/bin/sh", "/lab-ready.sh"]
+    volumes:
+      - management-kubeconfig:/kubeconfigs/management:ro
+      - ./lab-ready.sh:/lab-ready.sh:ro
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/ready"]
+      interval: 10s
+      start_interval: 5s
+      # A first start takes several minutes; only call it unhealthy after 20.
+      start_period: 20m
+      retries: 3
+    networks:
+      - k8s-management
+
 volumes:
   gitea-data:
   registry-data:
+  registry-certs:
   gitea-runner-data:

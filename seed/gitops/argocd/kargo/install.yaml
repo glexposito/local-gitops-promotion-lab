@@ -113,6 +113,11 @@ spec:
         # the Warehouse polls GHCR instead. Off to save resources.
         externalWebhooksServer:
           enabled: false
+        # Local lab only: Gitea is http://gitea.local:3000, and by default
+        # Kargo refuses to send Git credentials over plain HTTP, so every
+        # promotion failed to push its commit. Harmless with GitHub (HTTPS).
+        controller:
+          allowCredentialsOverHTTP: true
   destination:
     server: https://kubernetes.default.svc
     namespace: kargo
