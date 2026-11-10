@@ -62,6 +62,10 @@ services:
         done
     volumes:
       - gitea-data:/data
+    # generate-runner-token calls Gitea's internal API at LOCAL_ROOT_URL
+    # (http://gitea:3000), so it must share Gitea's network to resolve "gitea".
+    networks:
+      - k8s-management
 
   registry:
     image: docker.io/library/registry:3.0.0
