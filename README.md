@@ -52,29 +52,9 @@ disposable lab: `local` / `local-123`.
 docker compose up -d --build --wait
 ```
 
-`--wait` returns only when the lab actually works, which takes about 5
-minutes on a first start. Healthy containers are not enough: after they are
-up, Argo CD still installs Kargo, Gitea Actions builds the first image, and
-Kargo promotes it. The `lab-ready` service follows those phases and turns
-healthy once pulse-api runs on internal. To watch progress, in another
-terminal:
-
-```bash
-docker compose logs -f lab-ready
-```
-
-```text
-10:01:12 Argo CD is installing Kargo...
-10:03:40 Creating the pulse-api Kargo project (Warehouse and Stages)...
-10:03:52 Waiting for the first pulse-api build to reach the registry ...
-10:04:30 Kargo is promoting the first build to internal...
-10:05:10 Lab ready. pulse-api runs on internal; Kargo promotes it on to stg and prod.
-```
-
-Until then, Argo CD showing the pulse-api apps as OutOfSync / Missing and
-Kargo showing an incomplete pipeline is normal. `docker compose ps lab-ready`
-shows `health: starting`, `healthy`, or, after 20 minutes without success,
-`unhealthy`; the last log line then says where it got stuck.
+The command returns when the lab is ready to use, about 5 minutes on a first
+start: pulse-api is deployed on internal, and Kargo carries on to stg and
+prod by itself.
 
 Under the hood, `local-bootstrap` copies `seed/` into `repos/`, initializes
 `repos/gitops/` and `repos/pulse-api/` as separate Git repositories, creates
