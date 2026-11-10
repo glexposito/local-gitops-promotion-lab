@@ -28,7 +28,7 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/glexposito/gitops-poc.git
+              repoURL: https://github.com/glexposito/local-gitops-promotion-lab.git
               revision: HEAD
               files:
                 - path: kargo/apps/*.yaml
@@ -51,7 +51,7 @@ spec:
     spec:
       project: '{{ .argocdProject }}'
       source:
-        repoURL: https://github.com/glexposito/gitops-poc.git
+        repoURL: https://github.com/glexposito/local-gitops-promotion-lab.git
         targetRevision: HEAD
         path: 'apps/{{ .app }}/overlays/{{ .name }}'
       destination:

@@ -7,9 +7,9 @@
 # this directory (argocd/, apps/, manifests/). Run from here:
 #   cd cluster && docker compose up -d
 
-# Fixed project name, so volumes stay gitops-poc_* no matter which
+# Fixed project name, so volumes stay local-gitops-promotion-lab_* no matter which
 # directory this file lives in.
-name: gitops-poc
+name: local-gitops-promotion-lab
 
 # Shared by the four k3s servers.
 x-k3s: &k3s
@@ -37,6 +37,7 @@ services:
     volumes:
       - internal-data:/var/lib/rancher/k3s
       - internal-kubeconfig:/etc/rancher/k3s
+      - ./registries.yaml:/etc/rancher/k3s/registries.yaml:ro
       - ../manifests/internal:/var/lib/rancher/k3s/server/manifests/custom:ro
     networks:
       k8s-management:
@@ -55,6 +56,7 @@ services:
     volumes:
       - stg-data:/var/lib/rancher/k3s
       - stg-kubeconfig:/etc/rancher/k3s
+      - ./registries.yaml:/etc/rancher/k3s/registries.yaml:ro
       - ../manifests/stg:/var/lib/rancher/k3s/server/manifests/custom:ro
     networks:
       k8s-management:
@@ -71,6 +73,7 @@ services:
     volumes:
       - prod-data:/var/lib/rancher/k3s
       - prod-kubeconfig:/etc/rancher/k3s
+      - ./registries.yaml:/etc/rancher/k3s/registries.yaml:ro
       - ../manifests/prod:/var/lib/rancher/k3s/server/manifests/custom:ro
     networks:
       k8s-management:
@@ -90,6 +93,8 @@ services:
     volumes:
       - management-data:/var/lib/rancher/k3s
       - management-kubeconfig:/etc/rancher/k3s
+      # Lets every node pull the POC's optional local-registry images.
+      - ./registries.yaml:/etc/rancher/k3s/registries.yaml:ro
       - ../manifests/management:/var/lib/rancher/k3s/server/manifests/custom:ro
       # k3s installs Argo CD from this HelmChart on start.
       - ./argocd-install.yaml:/var/lib/rancher/k3s/server/manifests/argocd-install.yaml:ro

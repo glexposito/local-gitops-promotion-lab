@@ -18,7 +18,7 @@ spec:
     Namespace/quota/RBAC governance and the app-of-apps bootstrap itself.
     Not for workloads - see the pulse-api project.
   sourceRepos:
-    - https://github.com/glexposito/gitops-poc.git
+    - https://github.com/glexposito/local-gitops-promotion-lab.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: '*'

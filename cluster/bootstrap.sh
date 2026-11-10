@@ -15,6 +15,11 @@
 # verifies because each server has --tls-san=k3s-<cluster>.
 set -e
 
+# The default path uses this repository on GitHub. The local-only Compose
+# profile overrides these values to point at the Gitea service instead.
+GITOPS_REPO_URL="${GITOPS_REPO_URL:-https://github.com/glexposito/local-gitops-promotion-lab.git}"
+KARGO_GIT_REPO_URL="${KARGO_GIT_REPO_URL:-git@github.com:glexposito/local-gitops-promotion-lab.git}"
+
 management() { kubectl --kubeconfig=/kubeconfigs/management/k3s.yaml --server=https://k3s-management:6443 "$@"; }
 
 echo "Waiting for Argo CD..."
@@ -64,17 +69,26 @@ kind: Namespace
 metadata:
   name: kargo-shared-resources
 EOF
-if [ -s /secrets/kargo-git-key ]; then
+if [ -n "${KARGO_GIT_USERNAME:-}" ] && [ -n "${KARGO_GIT_PASSWORD:-}" ]; then
   management -n kargo-shared-resources create secret generic gitops-poc-git \
-    --from-literal=repoURL=git@github.com:glexposito/gitops-poc.git \
+    --from-literal=repoURL="$KARGO_GIT_REPO_URL" \
+    --from-literal=username="$KARGO_GIT_USERNAME" \
+    --from-literal=password="$KARGO_GIT_PASSWORD" \
+    --dry-run=client -o yaml \
+    | management label --local -f - kargo.akuity.io/cred-type=git -o yaml \
+    | management apply -f -
+elif [ -s /secrets/kargo-git-key ]; then
+  management -n kargo-shared-resources create secret generic gitops-poc-git \
+    --from-literal=repoURL="$KARGO_GIT_REPO_URL" \
     --from-file=sshPrivateKey=/secrets/kargo-git-key \
     --dry-run=client -o yaml \
     | management label --local -f - kargo.akuity.io/cred-type=git -o yaml \
     | management apply -f -
 else
-  echo "No cluster/secrets/kargo-git-key - Kargo can't push promotions until it exists (docs/kargo.md)."
+  echo "No Kargo git credential - add cluster/secrets/kargo-git-key or configure KARGO_GIT_USERNAME and KARGO_GIT_PASSWORD."
 fi
 
 echo "Applying the root Application..."
-management apply -n argocd -f /argocd/root-app.yaml
+sed "s|https://github.com/glexposito/local-gitops-promotion-lab.git|$GITOPS_REPO_URL|g" /argocd/root-app.yaml \
+  | management apply -n argocd -f -
 echo "Managed clusters: internal, stg, prod. Argo CD UI: https://localhost:9000 (admin/123)"

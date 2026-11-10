@@ -17,6 +17,9 @@ spec:
     {{- range list (required "image is required" .Values.image) (required "e2eImage is required" .Values.e2eImage) }}
     - image:
         repoURL: {{ . }}
+        {{- if $.Values.registryInsecure }}
+        insecureSkipTLSVerify: true
+        {{- end }}
         imageSelectionStrategy: NewestBuild
         allowTagsRegexes:
           - {{ $.Values.tagRegex | quote }}

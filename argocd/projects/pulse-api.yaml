@@ -11,7 +11,7 @@ metadata:
 spec:
   description: pulse-api - owns the pulse-api namespace on each cluster only.
   sourceRepos:
-    - https://github.com/glexposito/gitops-poc.git
+    - https://github.com/glexposito/local-gitops-promotion-lab.git
   destinations:
     - server: https://k3s-internal:6443
       namespace: 'pulse-api'

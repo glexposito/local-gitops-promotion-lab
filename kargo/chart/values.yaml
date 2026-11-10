@@ -31,3 +31,6 @@ autoPromote: [internal, stg]
 verification: [e2e-basic]
 # Tag filter for both images - matches docker/metadata-action's type=sha.
 tagRegex: ^sha-[0-9a-f]{7}$
+# A local POC registry may use a self-signed certificate. Never enable this
+# for a shared or production registry.
+registryInsecure: false

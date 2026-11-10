@@ -15,7 +15,7 @@ metadata:
 spec:
   project: kargo
   source:
-    repoURL: https://github.com/glexposito/gitops-poc.git
+    repoURL: https://github.com/glexposito/local-gitops-promotion-lab.git
     targetRevision: HEAD
     path: kargo/shared
   destination:

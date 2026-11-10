@@ -20,7 +20,7 @@ metadata:
 spec:
   description: Kargo, cert-manager, Argo Rollouts and Kargo promotion config - management cluster only.
   sourceRepos:
-    - https://github.com/glexposito/gitops-poc.git
+    - https://github.com/glexposito/local-gitops-promotion-lab.git
     - https://charts.jetstack.io
     - https://argoproj.github.io/argo-helm
     - ghcr.io/akuity/kargo-charts

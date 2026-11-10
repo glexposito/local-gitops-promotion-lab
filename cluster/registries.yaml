@@ -1,0 +1,11 @@
+# The local-only Compose profile serves application images from registry.local.
+# K3s nodes use HTTP only inside this disposable Docker network; do not copy
+# this setting to a real cluster.
+mirrors:
+  "registry.local:5000":
+    endpoint:
+      - "http://registry.local:5000"
+configs:
+  "registry.local:5000":
+    tls:
+      insecure_skip_verify: true

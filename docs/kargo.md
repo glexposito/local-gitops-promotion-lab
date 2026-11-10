@@ -20,7 +20,7 @@ Stage internal: deploy pulse-api-internal → run tests against http://k3s-inter
                       │
 Stage stg:      deploy pulse-api-stg      → run tests against http://k3s-stg:30080      → pass
                       │
-Stage prod:     waits for Promote in the UI → deploy → run tests against http://k3s-prod:30080
+Stage prod:     deploy → run tests against http://k3s-prod:30080
 ```
 
 "Deploy" is: commit the new digest to `apps/pulse-api/overlays/<stage>`, push,
@@ -98,7 +98,7 @@ pulse-api's tests are in pulse-api's `e2e/`. Results are in the Job's logs.
 There's no artifact storage, so Playwright's HTML reports and traces aren't
 kept.
 
-## Setup (once)
+## Setup (once, GitHub profile)
 
 Kargo needs two things before it can promote anything. Both are one-off.
 
@@ -114,7 +114,7 @@ Secret in `kargo-shared-resources`, which every Kargo Project can use.
 Without it, every promotion fails at its first step:
 
 ```
-error cloning git@github.com:glexposito/gitops-poc.git ... Could not read from remote repository.
+error cloning git@github.com:glexposito/local-gitops-promotion-lab.git ... Could not read from remote repository.
 ```
 
 **a. Create the key pair** (from `cluster/`):
@@ -130,10 +130,10 @@ This writes `secrets/kargo-git-key` (private) and
 **b. Give GitHub the public half**, with write access:
 
 ```bash
-gh repo deploy-key add secrets/kargo-git-key.pub -R glexposito/gitops-poc --allow-write -t kargo
+gh repo deploy-key add secrets/kargo-git-key.pub -R glexposito/local-gitops-promotion-lab --allow-write -t kargo
 ```
 
-Or in the browser: <https://github.com/glexposito/gitops-poc/settings/keys/new>,
+Or in the browser: <https://github.com/glexposito/local-gitops-promotion-lab/settings/keys/new>,
 title `kargo`, paste the output of `cat secrets/kargo-git-key.pub`, tick
 **Allow write access**, **Add key**.
 
@@ -179,9 +179,8 @@ Without it, the Warehouse finds no matching pair and creates no Freight.
 ## Try it
 
 1. Push to pulse-api `main`. Within a few minutes a new Freight appears in
-   the Kargo UI and goes through internal and stg on its own.
-2. Promote it to prod in the UI.
-3. Each promotion is a `pulse-api: promote sha-… to <stage>` commit here.
+   the Kargo UI and goes through internal, stg, and prod on its own.
+2. Each promotion is a `pulse-api: promote sha-… to <stage>` commit here.
 
 On a fresh cluster the `pulse-api-*` apps show Missing/OutOfSync until their
 first promotion: auto-sync is off, so only Kargo deploys them.

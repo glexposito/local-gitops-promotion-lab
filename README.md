@@ -1,4 +1,4 @@
-# gitops-poc
+# local-gitops-promotion-lab
 
 A local GitOps playground that proves two things:
 
@@ -33,16 +33,15 @@ Argo CD: **https://localhost:9000**, Kargo: **https://localhost:9001** (both
    ```bash
    cd cluster
    ssh-keygen -q -t ed25519 -N "" -f secrets/kargo-git-key -C kargo
-   gh repo deploy-key add secrets/kargo-git-key.pub -R glexposito/gitops-poc --allow-write -t kargo
+   gh repo deploy-key add secrets/kargo-git-key.pub -R glexposito/local-gitops-promotion-lab --allow-write -t kargo
    rm secrets/kargo-git-key.pub
    docker compose up -d --force-recreate argocd-bootstrap
    ```
 2. Make the `pulse-api-e2e` package public on GitHub (Packages → pulse-api-e2e →
    Package settings → Change visibility).
 
-Then push to pulse-api `main`: Kargo deploys the build to internal and stg,
-running its Playwright tests against each, and waits for you to Promote it to
-prod.
+Then push to pulse-api `main`: Kargo deploys the build to internal, stg, and
+prod, running its Playwright tests against each stage before the next one.
 
 | Cluster    | API              | pulse-api        | Runs                  |
 | ---------- | ---------------- | ---------------- | --------------------- |
@@ -78,3 +77,4 @@ docker compose down -v    # wipe everything
 - [architecture.md](docs/architecture.md): clusters, Argo CD, promotion
 - [kargo.md](docs/kargo.md): promotion with Kargo, setup, adding an app
 - [kustomize-conventions.md](docs/kustomize-conventions.md): the Kustomize standard
+- [local-only.md](docs/local-only.md): run the full promotion loop without GitHub

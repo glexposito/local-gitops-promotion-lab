@@ -2,7 +2,7 @@
 # called by each app's Stages (kargo/chart/templates/stages.yaml) with the
 # app's own vars:
 #
-#   1. clone gitops-poc, pin the Freight's image digest in
+#   1. clone the GitOps repository, pin the Freight's image digest in
 #      apps/<app>/overlays/<stage>, commit, push
 #   2. argocd-update: pin Argo CD app <app>-<stage> to exactly that commit
 #      and sync it
@@ -21,9 +21,9 @@ spec:
     - name: app    # required: apps/<app>/ and Argo CD apps <app>-<stage>
     - name: image  # required: the image to pin, e.g. ghcr.io/glexposito/pulse-api
     - name: gitRepo
-      value: git@github.com:glexposito/gitops-poc.git
+      value: git@github.com:glexposito/local-gitops-promotion-lab.git
     - name: argocdRepo
-      value: https://github.com/glexposito/gitops-poc.git
+      value: https://github.com/glexposito/local-gitops-promotion-lab.git
   steps:
     - uses: git-clone
       config:

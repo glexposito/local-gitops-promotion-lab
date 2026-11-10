@@ -1,0 +1,50 @@
+# Opt-in local-only services. Start them together with the base stack using:
+#   docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile local up -d
+#
+# The fixed addresses are also declared in
+# manifests/management/05-cluster-dns.yaml so Argo CD and Kargo pods can
+# reach these Docker services from inside the management cluster.
+services:
+  gitea:
+    image: docker.gitea.com/gitea:28.3.0
+    profiles: [local]
+    environment:
+      GITEA__database__DB_TYPE: sqlite3
+      GITEA__server__DOMAIN: gitea.local
+      GITEA__server__ROOT_URL: http://gitea.local:3000/
+      GITEA__server__HTTP_PORT: 3000
+      GITEA__server__DISABLE_SSH: "true"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - gitea-data:/data
+    networks:
+      k8s-management:
+        ipv4_address: 172.28.0.105
+        aliases: [gitea.local]
+
+  registry:
+    image: docker.io/library/registry:3.0.0
+    profiles: [local]
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry-data:/var/lib/registry
+    networks:
+      k8s-management:
+        ipv4_address: 172.28.0.106
+        aliases: [registry.local]
+
+  # The base bootstrap is reused, but its Git source and Kargo write
+  # credential become the local Gitea repository.
+  argocd-bootstrap:
+    environment:
+      GITOPS_REPO_URL: http://gitea.local:3000/local/local-gitops-promotion-lab.git
+      KARGO_GIT_REPO_URL: http://gitea.local:3000/local/local-gitops-promotion-lab.git
+      KARGO_GIT_USERNAME: local
+      KARGO_GIT_PASSWORD: local-123
+
+volumes:
+  gitea-data:
+  registry-data:
