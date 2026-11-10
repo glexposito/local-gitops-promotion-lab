@@ -1,0 +1,22 @@
+name: Publish pulse-api
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: local
+    steps:
+      - name: Build and publish the pushed commit
+        run: |
+          set -eu
+          git clone --no-checkout http://gitea:3000/local/pulse-api.git source
+          cd source
+          git checkout --detach "$GITHUB_SHA"
+          tag="sha-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+          docker build -t "localhost:5000/pulse-api:$tag" .
+          docker build -t "localhost:5000/pulse-api-e2e:$tag" e2e
+          docker push "localhost:5000/pulse-api:$tag"
+          docker push "localhost:5000/pulse-api-e2e:$tag"
+          echo "Published $tag. Kargo will discover it as registry.local:5000/pulse-api."

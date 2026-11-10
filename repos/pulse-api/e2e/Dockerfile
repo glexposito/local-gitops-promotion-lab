@@ -1,5 +1,5 @@
 # pulse-api's e2e tests as an image, built and pushed next to the app image
-# with the same sha-<short> tag (.github/workflows/pipeline.yml). Kargo, in
+# with the same sha-<short> tag (.gitea/workflows/publish.yaml). Kargo, in
 # gitops-poc, runs the one from the same commit as the app it's verifying,
 # with its e2e-playwright verification template.
 #

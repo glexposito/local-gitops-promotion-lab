@@ -6,7 +6,10 @@ network as the four k3s clusters.
 
 ```
 pulse-api checkout
-  |  docker compose --profile publish run pulse-api-publisher
+  |  git push local main
+  v
+Gitea Actions runner
+  |
   v
 registry.local:5000 <-- Kargo Warehouse
   |
@@ -43,8 +46,9 @@ docker compose up -d
 ```
 
 The `local-bootstrap` Compose service creates the two local Git repositories,
-creates their Gitea remotes, and exits before Argo CD's bootstrap can start. First startup
-takes a few minutes. Argo CD is at `https://localhost:9000` and Kargo is at
+creates their Gitea remotes, and exits before Argo CD's bootstrap can start.
+The Gitea Actions runner starts after that initial setup. First startup takes
+a few minutes. Argo CD is at `https://localhost:9000` and Kargo is at
 `https://localhost:9001`.
 
 The bootstrap is idempotent after a successful first run: it keeps the
@@ -56,26 +60,27 @@ docker compose down -v
 
 ## Publish a build
 
-Edit and commit a change in the generated application worktree, then run:
+Edit and commit a change in the generated application repository, then push:
 
 ```bash
 cd repos/pulse-api
-git add . && git commit -m 'Change pulse-api'
-cd ../..
-docker compose --profile publish run --rm pulse-api-publisher
+git add .
+git commit -m 'Change pulse-api'
+git push local main
 ```
 
-The publisher service pushes that commit to local Gitea, builds the app and
-Playwright images, tags both `sha-<commit>`, and pushes both to the local registry.
-Kargo discovers the pair and promotes it automatically through all stages.
+Gitea Actions builds the app and Playwright images, tags both `sha-<commit>`,
+and pushes both to the local registry. Kargo discovers the pair and promotes
+it automatically through all stages.
 
-The publisher pushes via `localhost:5000`; Kargo and the k3s nodes use the
-same registry through `registry.local:5000`. The local registry is configured
-as insecure only inside this disposable Docker network.
+The Action runner pushes via `localhost:5000`; Kargo and the k3s nodes use
+the same registry through `registry.local:5000`. The local registry is
+configured as insecure only inside this disposable Docker network.
 
 ## Scope
 
-This removes the need for GitHub repositories, GHCR, and GitHub Actions. The
-initial installation still downloads Kargo and other public controller images.
-For a fully air-gapped lab, mirror those charts and images into a registry you
+This removes the need for GitHub repositories, GHCR, and GitHub Actions.
+Gitea Actions is the local CI stand-in. The initial installation still
+downloads Kargo, the Gitea Runner, and other public controller images. For a
+fully air-gapped lab, mirror those charts and images into a registry you
 control as a separate follow-up.

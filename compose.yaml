@@ -1,3 +1,5 @@
+name: local-gitops-promotion-lab
+
 include:
   - path: repos/gitops/cluster/compose.k3s.yaml
   - path: repos/gitops/cluster/compose.local-platform.yaml

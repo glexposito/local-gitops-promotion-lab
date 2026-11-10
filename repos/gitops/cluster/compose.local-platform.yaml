@@ -17,6 +17,7 @@ services:
       GITEA__server__DISABLE_SSH: "true"
       # This is an unattended lab setup, not a browser-wizard installation.
       GITEA__security__INSTALL_LOCK: "true"
+      GITEA__actions__ENABLED: "true"
       GITEA__service__DISABLE_REGISTRATION: "true"
     ports:
       - "3000:3000"
@@ -40,11 +41,16 @@ services:
       - -ec
       - |
         until test -f /data/gitea/conf/app.ini; do sleep 1; done
-        until gitea admin user list | grep -q 'local@example.test'; do
-          gitea admin user create --admin --username local --password local-123 \
+        until gitea --config /data/gitea/conf/app.ini admin user list | grep -q 'local@example.test'; do
+          gitea --config /data/gitea/conf/app.ini admin user create --admin --username local --password local-123 \
             --email local@example.test --must-change-password=false || true
           sleep 1
         done
+        if ! test -s /data/gitea/local-runner-token; then
+          gitea --config /data/gitea/conf/app.ini actions generate-runner-token --scope local \
+            > /data/gitea/local-runner-token
+          chmod 600 /data/gitea/local-runner-token
+        fi
     volumes:
       - gitea-data:/data
 
@@ -72,17 +78,24 @@ services:
     networks:
       - k8s-management
 
-  # Run after committing in repos/pulse-api. The Docker client talks to the
-  # host daemon through its socket, so builds work on Docker Desktop too.
-  pulse-api-publisher:
-    image: local-gitops-promotion-lab-tools
-    profiles: [publish]
+  # It starts after the first push has created local/pulse-api, then receives
+  # every later push from Gitea. Jobs use the trusted lab's host Docker daemon
+  # to build and push the app images.
+  gitea-runner:
+    image: docker.io/gitea/runner:2
     depends_on:
-      registry:
-        condition: service_started
-    entrypoint: ["/usr/local/bin/publish-pulse-api"]
+      local-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      CONFIG_FILE: /config.yaml
+      GITEA_INSTANCE_URL: http://gitea:3000
+      GITEA_RUNNER_REGISTRATION_TOKEN_FILE: /gitea-data/gitea/local-runner-token
+      GITEA_RUNNER_NAME: local-pulse-api
+      GITEA_RUNNER_LABELS: local:docker://local-gitops-promotion-lab-tools
     volumes:
-      - ../../../:/lab
+      - gitea-data:/gitea-data:ro
+      - gitea-runner-data:/data
+      - ./runner-config.yaml:/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - k8s-management
@@ -103,3 +116,4 @@ services:
 volumes:
   gitea-data:
   registry-data:
+  gitea-runner-data:

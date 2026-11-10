@@ -30,6 +30,20 @@ create_repo() {
   esac
 }
 
+enable_actions() {
+  name="$1"
+  status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+    --request PATCH \
+    --user "$gitea_user:$gitea_password" \
+    --header 'Content-Type: application/json' \
+    --data '{"has_actions":true}' \
+    "$gitea_api/api/v1/repos/$gitea_user/$name")"
+  case "$status" in
+    200) ;;
+    *) echo "Unable to enable Gitea Actions for $name (HTTP $status)." >&2; exit 1 ;;
+  esac
+}
+
 init_repo() {
   target="$1"
   message="$2"
@@ -86,6 +100,7 @@ fi
 wait_for_gitea
 create_repo gitops
 create_repo pulse-api
+enable_actions pulse-api
 configure_gitops
 configure_app
 

@@ -21,15 +21,15 @@ their commits.
 ## What happens
 
 1. Edit and commit `repos/pulse-api/`.
-2. The Compose publisher pushes that commit to Gitea and builds the app plus
-   its Playwright test image into the local registry.
+2. Push that commit to Gitea. Its local Gitea Actions runner builds the app
+   plus its Playwright test image into the local registry.
 3. Kargo discovers the paired images, promotes the same build through
    internal → stg → prod, and commits each promoted digest to `local/gitops`.
 4. Argo CD sees those GitOps commits and deploys them. Each stage's tests run
    from the management cluster before Kargo promotes to the next stage.
 
 ```text
-repos/pulse-api → Gitea + registry → Kargo → repos/gitops → Argo CD → clusters
+repos/pulse-api → Gitea Actions + registry → Kargo → repos/gitops → Argo CD → clusters
 ```
 
 ## First start
@@ -45,8 +45,8 @@ docker compose up -d
 
 The first startup takes a few minutes. `local-bootstrap` runs inside Compose:
 it initializes `repos/gitops/` and `repos/pulse-api/` as separate Git
-repositories and creates their Gitea remotes before Argo CD's bootstrap can run. No host shell
-script, Git, curl, or Perl is required. Open Gitea at http://localhost:3000,
+repositories, creates their Gitea remotes, and starts the local Gitea Actions
+runner. No host shell script, Git, curl, or Perl is required. Open Gitea at http://localhost:3000,
 Argo CD at https://localhost:9000, and Kargo at https://localhost:9001. Argo
 CD and Kargo both use `admin` / `123`; accept their self-signed certificate.
 
@@ -54,17 +54,18 @@ CD and Kargo both use `admin` / `123`; accept their self-signed certificate.
 
 ```bash
 cd repos/pulse-api
-git add README.md
-git commit -m 'Document the first local release'
-cd ../..
-docker compose --profile publish run --rm pulse-api-publisher
+git commit --allow-empty -m "Trigger local release"
+git push local main
 ```
 
-The publisher requires a clean, committed worktree so the image tag always
-matches the commit Kargo promotes. It runs in a disposable Compose container
-and uses Docker Desktop's/Engine's daemon to build and push. It replaces
-GitHub Actions for this POC; adding a Gitea Actions runner later is a swap at
-this one build/publish step, not a change to the GitOps or promotion flow.
+Git records the trigger time portably on Windows and Linux. View it with
+`git show -s --format=%cI HEAD`. `--allow-empty` intentionally creates a new
+commit even when no files changed; pushing that commit is the release trigger.
+Gitea Actions runs the workflow—there is no per-release `docker compose`
+command. Watch it in Gitea at **local/pulse-api → Actions**.
+
+The workflow tags both images with `sha-<commit>`, so the image Kargo promotes
+always maps to the pushed source commit.
 
 ## Reset
 

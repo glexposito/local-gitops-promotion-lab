@@ -12,8 +12,8 @@ Kargo UI: **https://localhost:9001** (`admin` / `123`).
 ```text
 repos/pulse-api commit
   │
-  ├─ Compose publisher pushes local/pulse-api to Gitea
-  └─ builds and pushes the matching app + e2e images to registry.local:5000
+  ├─ push to local/pulse-api in Gitea
+  └─ Gitea Actions builds and pushes the matching app + e2e images to registry.local:5000
        │
        ▼
 Warehouse creates Freight from the matching sha-<commit> pair
@@ -69,7 +69,8 @@ Neither setting is suitable for a shared environment.
 1. Add its Kustomize manifests: `apps/<app>/base` plus `overlays/<stage>`.
 2. Add its namespace on each cluster and an Argo CD AppProject that permits
    it.
-3. Ensure the publisher creates `<image>:sha-*` and `<image>-e2e:sha-*`.
+3. Ensure its Gitea Actions workflow creates `<image>:sha-*` and
+   `<image>-e2e:sha-*`.
 4. Add `kargo/apps/<app>.yaml`:
 
 ```yaml
@@ -109,8 +110,7 @@ logs; this POC has no artifact storage.
 ## Try it
 
 1. Commit a change in `repos/pulse-api/`.
-2. From the outer template root, run
-   `docker compose --profile publish run --rm pulse-api-publisher`.
+2. Push that commit to `local/main` with `git push local main`.
 3. Within a few minutes a new Freight appears in the Kargo UI and moves
    through internal, stg, and prod automatically.
 4. Each promotion creates a `pulse-api: promote sha-… to <stage>` commit in

@@ -1,0 +1,4 @@
+# All jobs run on the lab network so they can clone the pushed source from
+# Gitea. The runner automatically passes its Docker socket to job containers.
+container:
+  network: local-gitops-promotion-lab_k8s-management
