@@ -17,25 +17,25 @@ Gitea <--- Kargo promotion commits
 Argo CD deploys internal -> stg -> prod
 ```
 
-The outer `local-gitops-promotion-lab` template holds version-one source
-snapshots. On first boot it creates this GitOps repository in `gitops/` and an
-independent application repository in `repos/pulse-api/`. Gitea then hosts
-them as `local/gitops` and `local/pulse-api`; their histories are separate
-from that point on.
+The outer `local-gitops-promotion-lab` template holds the starting files in
+`repos/gitops/` and `repos/pulse-api/`. On first boot it initializes both
+directories as independent repositories. Gitea then hosts them as
+`local/gitops` and `local/pulse-api`; their histories are separate from that
+point on.
 
 These similarly named paths have distinct purposes:
 
 | Path | Purpose | Git history |
 | --- | --- | --- |
 | `apps/pulse-api/` | Kustomize deployment manifests | `local/gitops` |
-| `../repos/pulse-api/` | editable application worktree | `local/pulse-api` |
+| `../pulse-api/` | editable application repository | `local/pulse-api` |
 
 ## Start
 
 Prerequisite: Docker Desktop or Docker Engine with modern Compose. Git is only
 needed to commit from a terminal; the setup tooling stays in containers. This
 profile is deliberately local and insecure:
-Gitea listens on `localhost:3000` with the seeded `local` / `local-123`
+Gitea listens on `localhost:3000` with the local `local` / `local-123`
 account, and the registry is plain HTTP on `localhost:5000`.
 
 ```bash
@@ -43,7 +43,7 @@ docker compose up -d
 ```
 
 The `local-bootstrap` Compose service creates the two local Git repositories,
-seeds Gitea, and exits before Argo CD's bootstrap can start. First startup
+creates their Gitea remotes, and exits before Argo CD's bootstrap can start. First startup
 takes a few minutes. Argo CD is at `https://localhost:9000` and Kargo is at
 `https://localhost:9001`.
 

@@ -11,7 +11,7 @@ manages it.
 From the outer lab template, `docker compose up -d` does everything:
 
 1. The Compose `local-bootstrap` service initializes the independent GitOps
-   and pulse-api worktrees, seeds Gitea, then exits.
+   and pulse-api repositories, creates their Gitea remotes, then exits.
 2. Each k3s container auto-applies its `manifests/<cluster>/`, which is
    bind-mounted in. On the workload clusters that includes the
    `argocd-manager` ServiceAccount Argo CD will use.

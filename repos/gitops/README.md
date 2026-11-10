@@ -1,9 +1,9 @@
 # gitops
 
 This is the GitOps repository used at runtime by the local promotion lab. It
-is initially created from `.seed/gitops` in the outer
-`local-gitops-promotion-lab` template, then pushed to local Gitea as
-`local/gitops`.
+starts as `repos/gitops` in the outer `local-gitops-promotion-lab` template.
+On first boot the local bootstrap initializes this directory as its own Git
+repository, then pushes it to local Gitea as `local/gitops`.
 
 Argo CD and Kargo consume this repository. Kargo commits the promoted image
 digest here; Argo CD observes that commit and deploys it. The application

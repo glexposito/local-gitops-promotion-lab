@@ -1,8 +1,9 @@
 # Local-only services. The root compose.yaml includes this file, so first boot
 # is simply: docker compose up -d
 #
-# local-bootstrap runs once in a Linux container. It writes the two generated
-# Git worktrees into the host bind mount, seeds Gitea, and exits. Argo CD's
+# local-bootstrap runs once in a Linux container. It initializes the two
+# visible repository directories in the host bind mount, creates their Gitea
+# remotes, and exits. Argo CD's
 # bootstrap waits for it, so it can never try to clone GitOps before Gitea has
 # the initial commit.
 services:

@@ -3,7 +3,7 @@
 set -eu
 
 lab_root=/lab
-gitops_dir="$lab_root/gitops"
+gitops_dir="$lab_root/repos/gitops"
 app_dir="$lab_root/repos/pulse-api"
 gitea_api=http://gitea:3000
 gitea_user=local
@@ -31,15 +31,12 @@ create_repo() {
 }
 
 init_repo() {
-  source="$1"
-  target="$2"
-  message="$3"
-  if [ -e "$target" ]; then
-    echo "Refusing to overwrite existing $target" >&2
+  target="$1"
+  message="$2"
+  if [ ! -d "$target" ]; then
+    echo "Expected repository directory $target is missing" >&2
     exit 1
   fi
-  mkdir -p "$target"
-  cp -a "$source/." "$target"
   git -C "$target" init --initial-branch=main >/dev/null
   git -C "$target" config user.name local-bootstrap
   git -C "$target" config user.email local-bootstrap@localhost
@@ -54,7 +51,9 @@ configure_gitops() {
 
   find "$gitops_dir" -path '*/.git' -prune -o -type f -print0 \
     | xargs -0 perl -pi -e 's#git\@github\.com:glexposito/local-gitops-promotion-lab\.git#http://gitea.local:3000/local/gitops.git#g; s#https://github\.com/glexposito/local-gitops-promotion-lab\.git#http://gitea.local:3000/local/gitops.git#g; s#ghcr\.io/glexposito/pulse-api-e2e#registry.local:5000/pulse-api-e2e#g; s#ghcr\.io/glexposito/pulse-api#registry.local:5000/pulse-api#g'
-  perl -0pi -e 's#(e2eImage: registry\.local:5000/pulse-api-e2e\n)#$1registryInsecure: true\n#' "$gitops_dir/kargo/apps/pulse-api.yaml"
+  if ! grep -q '^registryInsecure: true$' "$gitops_dir/kargo/apps/pulse-api.yaml"; then
+    perl -0pi -e 's#(e2eImage: registry\.local:5000/pulse-api-e2e\n)#$1registryInsecure: true\n#' "$gitops_dir/kargo/apps/pulse-api.yaml"
+  fi
   git -C "$gitops_dir" add -A
   if ! git -C "$gitops_dir" diff --cached --quiet; then
     git -C "$gitops_dir" commit -m 'Configure the local Gitea and registry' >/dev/null
@@ -72,13 +71,15 @@ configure_app() {
 }
 
 if [ ! -d "$gitops_dir/.git" ]; then
-  mkdir -p "$lab_root/repos"
-  init_repo "$lab_root/.seed/gitops" "$gitops_dir" 'Initial GitOps state'
-  init_repo "$lab_root/.seed/repos/pulse-api" "$app_dir" 'Initial pulse-api release'
+  init_repo "$gitops_dir" 'Initial GitOps state'
+fi
+
+if [ ! -d "$app_dir/.git" ]; then
+  init_repo "$app_dir" 'Initial pulse-api release'
 fi
 
 if [ ! -d "$gitops_dir/.git" ] || [ ! -d "$app_dir/.git" ]; then
-  echo "Both gitops/.git and repos/pulse-api/.git must exist." >&2
+  echo "Both repos/gitops/.git and repos/pulse-api/.git must exist." >&2
   exit 1
 fi
 

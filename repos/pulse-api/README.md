@@ -14,8 +14,9 @@ OpenTelemetry instrumentation next.
 
 ## Local lab publishing
 
-This source is seeded as the independent `local/pulse-api` repository in
-Gitea. The local lab's publisher builds two images with the same `sha-*` tag:
+On first start, the local bootstrap initializes this directory as the
+independent `local/pulse-api` repository in Gitea. The local lab's publisher
+builds two images with the same `sha-*` tag:
 
 | Image | From | What |
 |---|---|---|

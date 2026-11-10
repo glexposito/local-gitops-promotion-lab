@@ -1,2 +1,4 @@
-/gitops/
-/repos/
+# The visible contents of repos/ are versioned starting files. First boot
+# creates separate Git metadata for each local repository.
+/repos/gitops/.git/
+/repos/pulse-api/.git/
