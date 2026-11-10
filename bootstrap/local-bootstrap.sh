@@ -88,11 +88,11 @@ configure_app() {
   git -C "$app_dir" push "$container_git_base/pulse-api.git" main
 }
 
-if [ ! -d "$gitops_dir/.git" ]; then
+if ! git --git-dir="$gitops_dir/.git" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
   init_repo "$gitops_dir" 'Initial GitOps state'
 fi
 
-if [ ! -d "$app_dir/.git" ]; then
+if ! git --git-dir="$app_dir/.git" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
   init_repo "$app_dir" 'Initial pulse-api release'
 fi
 
