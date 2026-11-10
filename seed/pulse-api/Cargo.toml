@@ -1,0 +1,17 @@
+[package]
+name = "pulse-api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+hostname = "0.4"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
+
+[profile.release]
+codegen-units = 1
+incremental = false
+lto = true
+opt-level = "z"
+panic = "abort"
+strip = true

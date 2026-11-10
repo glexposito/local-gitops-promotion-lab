@@ -17,20 +17,29 @@ Gitea <--- Kargo promotion commits
 Argo CD deploys internal -> stg -> prod
 ```
 
-`pulse-api` remains a separate Git repository. The first boot copies its
-`main` branch and this lab's `main` branch into Gitea, where they become the
-two local remotes. Subsequent calls to the publisher push the committed
-`pulse-api` revision to Gitea before building its matching app and e2e images.
+`seed/pulse-api/` is a version-one source snapshot tracked by this lab's
+GitHub repository. On first boot it is copied to `workspace/pulse-api/`, where
+the setup creates an independent Git repository and its first commit. Gitea
+then hosts that repository as `local/pulse-api`; the lab's own Git history and
+the application's Git history are separate from that point on.
+
+These similarly named paths have distinct purposes:
+
+| Path | Purpose | Git history |
+| --- | --- | --- |
+| `apps/pulse-api/` | Kustomize deployment manifests | lab / GitOps repository |
+| `seed/pulse-api/` | version-one application source distributed with the lab | lab repository only |
+| `workspace/pulse-api/` | editable application worktree created at first boot | independent local `pulse-api` repository |
 
 ## Start
 
-Prerequisites: Docker with Compose, `git`, `curl`, `perl`, and a sibling
-`../pulse-api` checkout. This profile is deliberately local and insecure:
+Prerequisites: Docker with Compose, `git`, `curl`, and `perl`. This profile is
+deliberately local and insecure:
 Gitea listens on `localhost:3000` with the seeded `local` / `local-123`
 account, and the registry is plain HTTP on `localhost:5000`.
 
 ```bash
-./local/up.sh ../pulse-api
+./local/up.sh
 ```
 
 The script starts Gitea and the registry, seeds both repositories, then starts
@@ -48,10 +57,13 @@ docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile loc
 
 ## Publish a build
 
-Commit a change in `pulse-api`, then run:
+Edit and commit a change in the generated application worktree, then run:
 
 ```bash
-./local/publish-pulse-api.sh ../pulse-api
+cd workspace/pulse-api
+git add . && git commit -m 'Change pulse-api'
+cd ../..
+./local/publish-pulse-api.sh
 ```
 
 The script pushes that commit to local Gitea, builds the app and Playwright

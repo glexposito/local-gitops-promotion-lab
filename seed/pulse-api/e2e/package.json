@@ -1,0 +1,11 @@
+{
+  "name": "pulse-api-e2e",
+  "private": true,
+  "description": "pulse-api end-to-end tests (Playwright). Run against a deployed pulse-api: BASE_URL=http://localhost:8081 npx playwright test",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}

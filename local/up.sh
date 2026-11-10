@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-app_dir="${1:-"$repo_root/../pulse-api"}"
+app_dir="${1:-"$repo_root/workspace/pulse-api"}"
 compose=(docker compose -f "$repo_root/cluster/docker-compose.yaml" -f "$repo_root/cluster/docker-compose.local.yaml" --profile local)
 
 "${compose[@]}" up -d gitea registry

@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-app_dir="${1:-"$repo_root/../pulse-api"}"
+app_dir="${1:-"$repo_root/workspace/pulse-api"}"
 registry="localhost:5000"
 
 if [ ! -d "$app_dir/.git" ]; then

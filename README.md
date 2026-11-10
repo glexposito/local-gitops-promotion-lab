@@ -13,6 +13,11 @@ A local GitOps playground that proves two things:
    it, before the next stage may take it. Every deploy is a git commit here.
    pulse-api's GitHub Actions pipeline only builds the images.
 
+The optional local-only profile bundles a version-one `pulse-api` source
+snapshot. On first boot it creates a second, independent Git repository for
+the app in `workspace/pulse-api/` and hosts it in local Gitea. See
+[local-only.md](docs/local-only.md).
+
 Four k3s clusters in Docker. KISS.
 
 ## TL;DR
