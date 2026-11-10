@@ -21,8 +21,9 @@ Argo CD deploys internal -> stg -> prod
 ```
 
 The outer `local-gitops-promotion-lab` template holds the starting files in
-`repos/gitops/` and `repos/pulse-api/`. On first boot it initializes both
-directories as independent repositories. Gitea then hosts them as
+`seed/gitops/` and `seed/pulse-api/`. On first boot it copies them to
+`repos/gitops/` and `repos/pulse-api/` (gitignored by the template) and
+initializes both copies as independent repositories. Gitea then hosts them as
 `local/gitops` and `local/pulse-api`; their histories are separate from that
 point on.
 

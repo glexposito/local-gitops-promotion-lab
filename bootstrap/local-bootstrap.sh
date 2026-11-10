@@ -7,8 +7,12 @@ set -eu
 git config --global --add safe.directory "*"
 
 lab_root=/lab
-gitops_dir="$lab_root/repos/gitops"
-app_dir="$lab_root/repos/pulse-api"
+# seed/ is the template versioned in the outer repository. repos/ is
+# gitignored there and holds the working repositories that live in Gitea.
+seed_root="$lab_root/seed"
+repos_root="$lab_root/repos"
+gitops_dir="$repos_root/gitops"
+app_dir="$repos_root/pulse-api"
 gitea_api=http://gitea:3000
 gitea_user=local
 gitea_password=local-123
@@ -46,6 +50,21 @@ enable_actions() {
     200) ;;
     *) echo "Unable to enable Gitea Actions for $name (HTTP $status)." >&2; exit 1 ;;
   esac
+}
+
+# Copies a seed into repos/ only on first boot. An existing working repository
+# is never overwritten, so its history and uncommitted work survive restarts.
+seed_repo() {
+  name="$1"
+  if [ -d "$repos_root/$name" ]; then
+    return
+  fi
+  if [ ! -d "$seed_root/$name" ]; then
+    echo "Expected seed directory $seed_root/$name is missing" >&2
+    exit 1
+  fi
+  mkdir -p "$repos_root"
+  cp -a "$seed_root/$name" "$repos_root/$name"
 }
 
 init_repo() {
@@ -88,6 +107,9 @@ configure_app() {
   git -C "$app_dir" push "$container_git_base/pulse-api.git" main
 }
 
+seed_repo gitops
+seed_repo pulse-api
+
 if ! git --git-dir="$gitops_dir/.git" rev-parse --verify --quiet HEAD >/dev/null 2>&1; then
   init_repo "$gitops_dir" 'Initial GitOps state'
 fi
@@ -111,6 +133,6 @@ configure_app
 # Docker bind mounts would otherwise leave the generated worktrees owned by
 # root on Linux. Docker Desktop handles this transparently on Windows/macOS.
 owner="$(stat -c '%u:%g' "$lab_root")"
-chown -R "$owner" "$gitops_dir" "$app_dir"
+chown -R "$owner" "$repos_root"
 
 echo 'Local Gitea repositories are ready: local/gitops and local/pulse-api.'

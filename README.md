@@ -1,26 +1,35 @@
 # local-gitops-promotion-lab
 
-An entirely local GitOps promotion lab. `repos/` deliberately mirrors the
-two repositories that would exist separately in a real setup. They are kept
-together here only so the lab can boot without external services; Gitea plays
-the role of GitHub for the complete local flow.
+An entirely local GitOps promotion lab. It simulates two repositories that
+would exist separately in a real setup. Gitea plays the role of GitHub, so the
+complete flow runs without external services.
 
 ```text
-local-gitops-promotion-lab/       # this template repository
-└── repos/
-    ├── gitops/                   # independent Git repo → Gitea local/gitops
-    └── pulse-api/                # independent Git repo → Gitea local/pulse-api
+local-gitops-promotion-lab/       # this repository (GitHub)
+├── seed/                         # tracked: starting files, the template
+│   ├── gitops/
+│   └── pulse-api/
+└── repos/                        # gitignored: your working repos (Gitea)
+    ├── gitops/                   # → Gitea local/gitops
+    └── pulse-api/                # → Gitea local/pulse-api
 ```
 
-`repos/` itself is just a folder. On first startup, `local-bootstrap` runs
-`git init` inside each child directory, creates its initial commit, and pushes
-it to Gitea. From then on, `local/gitops` and `local/pulse-api` have separate
-histories; the outer repository only supplies their starting files, never
-their commits.
+**`seed/` vs `repos/`.** Each folder belongs to exactly one Git history:
+
+| Folder | Owned by | You edit it to... |
+|---|---|---|
+| `seed/` | this repository (GitHub) | change the lab's starting state for everyone |
+| `repos/` | Gitea (`local/gitops`, `local/pulse-api`) | work in the running lab: release, promote, experiment |
+
+On first startup `local-bootstrap` copies `seed/gitops` and `seed/pulse-api`
+into `repos/`, runs `git init` in each, rewrites the GitOps URLs to point at
+Gitea and the local registry, and pushes both to Gitea. `repos/` is never
+overwritten after that, so your commits and Kargo's promotion commits stay
+there and never show up as changes in this repository.
 
 ## What happens
 
-1. Edit and commit `repos/pulse-api/`.
+1. Edit and commit in `repos/pulse-api/`.
 2. Push that commit to Gitea. Its local Gitea Actions runner builds the app
    plus its Playwright test image into the local registry.
 3. Kargo discovers the paired images, promotes the same build through
@@ -44,8 +53,8 @@ docker compose up -d
 ```
 
 The first startup takes a few minutes. `local-bootstrap` runs inside Compose:
-it initializes `repos/gitops/` and `repos/pulse-api/` as separate Git
-repositories, creates their Gitea remotes, and starts the local Gitea Actions
+it copies `seed/` into `repos/`, initializes `repos/gitops/` and
+`repos/pulse-api/` as separate Git repositories, creates their Gitea remotes, and starts the local Gitea Actions
 runner. No host shell script, Git, curl, or Perl is required. Open Gitea at http://localhost:3000,
 Argo CD at https://localhost:9000, and Kargo at https://localhost:9001. Argo
 CD and Kargo both use `admin` / `123`; accept their self-signed certificate.
@@ -69,14 +78,17 @@ always maps to the pushed source commit.
 
 ## Reset
 
-This erases the local clusters, Gitea data, and registry images. Remove the
-nested Git metadata only when you intentionally want fresh local histories;
-the visible starting files in `repos/` remain in place.
+This erases the local clusters, Gitea data, registry images, and your working
+repositories. The next `docker compose up -d` copies a fresh set from `seed/`.
 
 ```bash
 docker compose down -v
-rm -rf repos/gitops/.git repos/pulse-api/.git
+rm -rf repos
 ```
+
+Always reset both together: deleting only `repos/` leaves Gitea with a history
+the new copies cannot push to, and wiping only Gitea leaves `repos/` pointing
+at repositories that no longer exist.
 
 The Docker Compose project is intentionally fixed, so this lab cannot run at
 the same time as the earlier `gitops-poc` stack using the same ports and
