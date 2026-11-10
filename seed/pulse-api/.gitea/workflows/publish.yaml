@@ -7,6 +7,11 @@ on:
 jobs:
   build-and-push:
     runs-on: local
+    # The job image (bootstrap/Dockerfile, docker:27-cli on Alpine) has no
+    # bash, which is the runner's default shell.
+    defaults:
+      run:
+        shell: sh
     steps:
       # The Rust compile happens inside the Dockerfile's builder stage
       # (cargo build --release for musl), so "docker build" is the build.
