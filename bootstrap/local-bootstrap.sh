@@ -2,6 +2,10 @@
 # Runs inside the Compose bootstrap container, never on the host.
 set -eu
 
+# The bind-mounted worktrees belong to the host user, while this container
+# runs as root. Without this, Git rejects them as dubious ownership.
+git config --global --add safe.directory "*"
+
 lab_root=/lab
 gitops_dir="$lab_root/repos/gitops"
 app_dir="$lab_root/repos/pulse-api"

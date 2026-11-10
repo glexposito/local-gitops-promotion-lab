@@ -14,6 +14,9 @@ services:
       GITEA__server__DOMAIN: gitea.local
       GITEA__server__ROOT_URL: http://gitea.local:3000/
       GITEA__server__HTTP_PORT: 3000
+      # CLI commands that call the internal API (gitea-init) run in another
+      # container, so localhost would not reach this server.
+      GITEA__server__LOCAL_ROOT_URL: http://gitea:3000/
       GITEA__server__DISABLE_SSH: "true"
       # This is an unattended lab setup, not a browser-wizard installation.
       GITEA__security__INSTALL_LOCK: "true"
@@ -33,6 +36,8 @@ services:
   # CLI; it is not a host-side docker exec.
   gitea-init:
     image: docker.gitea.com/gitea:28.3.0
+    # The Gitea CLI refuses to run as root; the image's server runs as git.
+    user: git
     depends_on:
       gitea:
         condition: service_started
@@ -46,11 +51,15 @@ services:
             --email local@example.test --must-change-password=false || true
           sleep 1
         done
-        if ! test -s /data/gitea/local-runner-token; then
-          gitea --config /data/gitea/conf/app.ini actions generate-runner-token --scope local \
-            > /data/gitea/local-runner-token
-          chmod 600 /data/gitea/local-runner-token
-        fi
+        until test -s /data/gitea/local-runner-token; do
+          if gitea --config /data/gitea/conf/app.ini actions generate-runner-token --scope local \
+            > /data/gitea/local-runner-token.tmp; then
+            chmod 600 /data/gitea/local-runner-token.tmp
+            mv /data/gitea/local-runner-token.tmp /data/gitea/local-runner-token
+          else
+            sleep 1
+          fi
+        done
     volumes:
       - gitea-data:/data
 
