@@ -5,6 +5,7 @@
 #
 # SkipDryRunOnMissingResource + retry: on a fresh cluster the Kargo and
 # Rollouts CRDs don't exist until argocd/kargo/install.yaml has synced.
+# The retry is capped at 30s so it recovers as soon as they exist.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -27,8 +28,8 @@ spec:
     syncOptions:
       - SkipDryRunOnMissingResource=true
     retry:
-      limit: 10
+      limit: 30   # ~15 min of 30s retries: outlasts a slow first Kargo install
       backoff:
-        duration: 30s
+        duration: 5s
         factor: 2
-        maxDuration: 5m
+        maxDuration: 30s

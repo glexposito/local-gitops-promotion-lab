@@ -7,7 +7,10 @@
 # the same files, via argocd/appsets/kargo-apps-workloads.yaml.
 #
 # SkipDryRunOnMissingResource + retry: on a fresh cluster Kargo's CRDs
-# don't exist until argocd/kargo/install.yaml has synced.
+# don't exist until argocd/kargo/install.yaml has synced, and the Project
+# creates the namespace a moment after the Warehouse and Stages are applied.
+# The retry is short and capped at 30s so the lab recovers as soon as Kargo is
+# ready instead of idling on a long exponential backoff.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -48,8 +51,8 @@ spec:
         syncOptions:
           - SkipDryRunOnMissingResource=true
         retry:
-          limit: 10
+          limit: 30   # ~15 min of 30s retries: outlasts a slow first Kargo install
           backoff:
-            duration: 30s
+            duration: 5s
             factor: 2
-            maxDuration: 5m
+            maxDuration: 30s
