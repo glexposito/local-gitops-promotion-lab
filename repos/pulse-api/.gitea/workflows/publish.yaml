@@ -8,15 +8,22 @@ jobs:
   build-and-push:
     runs-on: local
     steps:
-      - name: Build and publish the pushed commit
+      # The Rust compile happens inside the Dockerfile's builder stage
+      # (cargo build --release for musl), so "docker build" is the build.
+      - name: Build images
         run: |
           set -eu
           git clone --no-checkout http://gitea:3000/local/pulse-api.git source
           cd source
           git checkout --detach "$GITHUB_SHA"
           tag="sha-$(printf '%s' "$GITHUB_SHA" | cut -c1-7)"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
           docker build -t "localhost:5000/pulse-api:$tag" .
           docker build -t "localhost:5000/pulse-api-e2e:$tag" e2e
-          docker push "localhost:5000/pulse-api:$tag"
-          docker push "localhost:5000/pulse-api-e2e:$tag"
-          echo "Published $tag. Kargo will discover it as registry.local:5000/pulse-api."
+
+      - name: Push images
+        run: |
+          set -eu
+          docker push "localhost:5000/pulse-api:$TAG"
+          docker push "localhost:5000/pulse-api-e2e:$TAG"
+          echo "Published $TAG. Kargo will discover it as registry.local:5000/pulse-api."
