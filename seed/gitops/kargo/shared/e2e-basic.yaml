@@ -16,6 +16,14 @@ spec:
   args:
     - name: base-url
     - name: e2e-image
+    # Optional: let the e2e image report its result as a commit status
+    # (deploy/<stage>) on the commit it was built from. Empty = no report.
+    - name: stage
+      value: ""
+    - name: commit
+      value: ""
+    - name: commit-status-url
+      value: ""
   metrics:
     - name: e2e
       provider:
@@ -36,6 +44,12 @@ spec:
                     env:
                       - name: BASE_URL
                         value: '{{args.base-url}}'
+                      - name: STAGE
+                        value: '{{args.stage}}'
+                      - name: COMMIT
+                        value: '{{args.commit}}'
+                      - name: COMMIT_STATUS_URL
+                        value: '{{args.commit-status-url}}'
                     resources:
                       requests:
                         cpu: 50m

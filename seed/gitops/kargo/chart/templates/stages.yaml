@@ -51,5 +51,14 @@ spec:
         value: http://k3s-{{ $stage }}:{{ $values.port }}
       - name: e2e-image
         value: {{ printf "%s@${{ imageFrom('%s').Digest }}" $values.e2eImage $values.e2eImage }}
+      {{- with $values.commitStatusURL }}
+      - name: stage
+        value: {{ $stage }}
+      # sha-<short>: the e2e image strips the prefix; Gitea resolves short SHAs.
+      - name: commit
+        value: {{ printf "${{ imageFrom('%s').Tag }}" $values.image }}
+      - name: commit-status-url
+        value: {{ . }}
+      {{- end }}
   {{- end }}
 {{- end }}

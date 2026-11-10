@@ -118,6 +118,11 @@ spec:
         # promotion failed to push its commit. Harmless with GitHub (HTTPS).
         controller:
           allowCredentialsOverHTTP: true
+          # Let Warehouses poll every 30s (kargo/chart discoveryInterval)
+          # instead of the 5m floor, so a build reaches internal quickly.
+          reconcilers:
+            warehouses:
+              minReconciliationInterval: 30s
   destination:
     server: https://kubernetes.default.svc
     namespace: kargo

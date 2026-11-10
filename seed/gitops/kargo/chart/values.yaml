@@ -29,8 +29,18 @@ autoPromote: [internal, stg]
 #     internal: [e2e-basic]
 #     stg: [e2e-basic, e2e-playwright]
 verification: [e2e-basic]
+# How often the Warehouse polls the registry for new builds. Kargo's own
+# default is 5m; argocd/kargo/install.yaml lowers the controller's minimum
+# (minReconciliationInterval) to match, or it would round this back up.
+discoveryInterval: 30s
 # Tag filter for both images - matches docker/metadata-action's type=sha.
 tagRegex: ^sha-[0-9a-f]{7}$
 # A local POC registry may use a self-signed certificate. Never enable this
 # for a shared or production registry.
 registryInsecure: false
+# Optional commit-status endpoint for the app's source repo, e.g. Gitea's
+# http://user:pass@gitea.local:3000/api/v1/repos/<owner>/<repo>/statuses.
+# When set, verification reports deploy/<stage> pending/success/failure on
+# the commit each build came from, so the source repo shows where it's
+# deployed and whether its e2e passed. Empty = no reporting.
+commitStatusURL: ""

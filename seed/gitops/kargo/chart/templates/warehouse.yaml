@@ -4,14 +4,15 @@
 #
 # NewestBuild: sha-* tags have no order of their own, so pick by build time.
 # It reads metadata for every matching tag, so discoveryLimit keeps that
-# small. The Warehouse polls (every 5m by default); there is no inbound
-# webhook (argocd/kargo/install.yaml).
+# small. The Warehouse polls every .Values.discoveryInterval; there is no
+# inbound webhook (argocd/kargo/install.yaml).
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
 metadata:
   name: {{ .Values.app }}
   namespace: {{ .Values.project }}
 spec:
+  interval: {{ .Values.discoveryInterval | quote }}
   freightCreationPolicy: Automatic
   subscriptions:
     {{- range list (required "image is required" .Values.image) (required "e2eImage is required" .Values.e2eImage) }}

@@ -91,6 +91,10 @@ configure_gitops() {
   if ! grep -q '^registryInsecure: true$' "$gitops_dir/kargo/apps/pulse-api.yaml"; then
     perl -0pi -e 's#(e2eImage: registry\.local:5000/pulse-api-e2e\n)#$1registryInsecure: true\n#' "$gitops_dir/kargo/apps/pulse-api.yaml"
   fi
+  # Verification reports deploy/<stage> back to local/pulse-api in Gitea.
+  if ! grep -q '^commitStatusURL:' "$gitops_dir/kargo/apps/pulse-api.yaml"; then
+    perl -0pi -e 's#(registryInsecure: true\n)#$1commitStatusURL: http://local:local-123\@gitea.local:3000/api/v1/repos/local/pulse-api/statuses\n#' "$gitops_dir/kargo/apps/pulse-api.yaml"
+  fi
   git -C "$gitops_dir" add -A
   if ! git -C "$gitops_dir" diff --cached --quiet; then
     git -C "$gitops_dir" commit -m 'Configure the local Gitea and registry' >/dev/null
