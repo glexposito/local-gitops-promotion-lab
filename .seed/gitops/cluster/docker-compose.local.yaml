@@ -40,8 +40,8 @@ services:
   # credential become the local Gitea repository.
   argocd-bootstrap:
     environment:
-      GITOPS_REPO_URL: http://gitea.local:3000/local/local-gitops-promotion-lab.git
-      KARGO_GIT_REPO_URL: http://gitea.local:3000/local/local-gitops-promotion-lab.git
+      GITOPS_REPO_URL: http://gitea.local:3000/local/gitops.git
+      KARGO_GIT_REPO_URL: http://gitea.local:3000/local/gitops.git
       KARGO_GIT_USERNAME: local
       KARGO_GIT_PASSWORD: local-123
 

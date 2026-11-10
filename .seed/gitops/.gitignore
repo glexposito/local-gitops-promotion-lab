@@ -1,0 +1,3 @@
+# Local credentials mounted into argocd-bootstrap (docs/kargo.md)
+cluster/secrets/*
+!cluster/secrets/.gitkeep

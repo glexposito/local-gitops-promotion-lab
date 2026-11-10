@@ -6,7 +6,7 @@ network as the four k3s clusters.
 
 ```
 pulse-api checkout
-  |  local/publish-pulse-api.sh
+  |  bootstrap/publish-pulse-api.sh
   v
 registry.local:5000 <-- Kargo Warehouse
   |
@@ -17,19 +17,18 @@ Gitea <--- Kargo promotion commits
 Argo CD deploys internal -> stg -> prod
 ```
 
-`seed/pulse-api/` is a version-one source snapshot tracked by this lab's
-GitHub repository. On first boot it is copied to `workspace/pulse-api/`, where
-the setup creates an independent Git repository and its first commit. Gitea
-then hosts that repository as `local/pulse-api`; the lab's own Git history and
-the application's Git history are separate from that point on.
+The outer `local-gitops-promotion-lab` template holds version-one source
+snapshots. On first boot it creates this GitOps repository in `gitops/` and an
+independent application repository in `repos/pulse-api/`. Gitea then hosts
+them as `local/gitops` and `local/pulse-api`; their histories are separate
+from that point on.
 
 These similarly named paths have distinct purposes:
 
 | Path | Purpose | Git history |
 | --- | --- | --- |
-| `apps/pulse-api/` | Kustomize deployment manifests | lab / GitOps repository |
-| `seed/pulse-api/` | version-one application source distributed with the lab | lab repository only |
-| `workspace/pulse-api/` | editable application worktree created at first boot | independent local `pulse-api` repository |
+| `apps/pulse-api/` | Kustomize deployment manifests | `local/gitops` |
+| `../repos/pulse-api/` | editable application worktree | `local/pulse-api` |
 
 ## Start
 
@@ -39,19 +38,19 @@ Gitea listens on `localhost:3000` with the seeded `local` / `local-123`
 account, and the registry is plain HTTP on `localhost:5000`.
 
 ```bash
-./local/up.sh
+./bootstrap/up.sh
 ```
 
 The script starts Gitea and the registry, seeds both repositories, then starts
 the clusters. First startup takes a few minutes. Argo CD is at
 `https://localhost:9000` and Kargo is at `https://localhost:9001`.
 
-Do not rerun `local/seed-repositories.sh` after promotions have begun: it is a
+Do not rerun `bootstrap/seed-repositories.sh` after promotions have begun: it is a
 one-time initializer and intentionally refuses to overwrite an existing local
 repository. To reset the lab entirely:
 
 ```bash
-cd cluster
+cd gitops/cluster
 docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile local down -v
 ```
 
@@ -60,10 +59,10 @@ docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile loc
 Edit and commit a change in the generated application worktree, then run:
 
 ```bash
-cd workspace/pulse-api
+cd repos/pulse-api
 git add . && git commit -m 'Change pulse-api'
 cd ../..
-./local/publish-pulse-api.sh
+./bootstrap/publish-pulse-api.sh
 ```
 
 The script pushes that commit to local Gitea, builds the app and Playwright

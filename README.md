@@ -1,85 +1,75 @@
 # local-gitops-promotion-lab
 
-A local GitOps playground that proves two things:
+An entirely local GitOps promotion lab. The GitHub repository only distributes
+the bootstrap and version-one templates. At runtime it creates two separate
+local Git repositories and hosts them in Gitea:
 
-1. **Argo CD management (hub and spoke):** one Argo CD on a dedicated
-   management cluster manages three workload clusters (internal, stg,
-   prod). Clusters are selected by label, so registering a cluster is
-   enough to deploy to it.
-2. **Promotion:** one image digest of
-   [pulse-api](https://github.com/glexposito/pulse-api) is promoted
-   internal → stg → prod by [Kargo](https://kargo.io). Each stage is
-   deployed, then verified by running that build's Playwright tests against
-   it, before the next stage may take it. Every deploy is a git commit here.
-   pulse-api's GitHub Actions pipeline only builds the images.
-
-The optional local-only profile bundles a version-one `pulse-api` source
-snapshot. On first boot it creates a second, independent Git repository for
-the app in `workspace/pulse-api/` and hosts it in local Gitea. See
-[local-only.md](docs/local-only.md).
-
-Four k3s clusters in Docker. KISS.
-
-## TL;DR
-
-```bash
-cd cluster
-docker compose up -d      # first start takes a few minutes
+```text
+local-gitops-promotion-lab/       # this template repository
+├── gitops/                       # independent Git repo → Gitea local/gitops
+└── repos/
+    └── pulse-api/                # independent Git repo → Gitea local/pulse-api
 ```
 
-Argo CD: **https://localhost:9000**, Kargo: **https://localhost:9001** (both
-`admin` / `123`, accept the self-signed certificate). You need Docker, and
-`gh` for the one-off setup.
+`repos/` is just a folder, not a Git repository. The outer repository ignores
+both generated worktrees, so their histories and commits cannot leak into the
+template repository.
 
-**First time only**, before Kargo can promote anything
-([details](docs/kargo.md#setup-once)):
+## What happens
 
-1. Give Kargo a git key:
-   ```bash
-   cd cluster
-   ssh-keygen -q -t ed25519 -N "" -f secrets/kargo-git-key -C kargo
-   gh repo deploy-key add secrets/kargo-git-key.pub -R glexposito/local-gitops-promotion-lab --allow-write -t kargo
-   rm secrets/kargo-git-key.pub
-   docker compose up -d --force-recreate argocd-bootstrap
-   ```
-2. Make the `pulse-api-e2e` package public on GitHub (Packages → pulse-api-e2e →
-   Package settings → Change visibility).
+1. Edit and commit `repos/pulse-api/`.
+2. `bootstrap/publish-pulse-api.sh` pushes that commit to Gitea and builds the
+   app plus its Playwright test image into the local registry.
+3. Kargo discovers the paired images, promotes the same build through
+   internal → stg → prod, and commits each promoted digest to `local/gitops`.
+4. Argo CD sees those GitOps commits and deploys them. Each stage's tests run
+   from the management cluster before Kargo promotes to the next stage.
 
-Then push to pulse-api `main`: Kargo deploys the build to internal, stg, and
-prod, running its Playwright tests against each stage before the next one.
-
-| Cluster    | API              | pulse-api        | Runs                  |
-| ---------- | ---------------- | ---------------- | --------------------- |
-| management | `localhost:6447` |                  | Argo CD, Kargo        |
-| internal   | `localhost:6444` | `localhost:8081` | pulse-api (1 replica) |
-| stg        | `localhost:6446` | `localhost:8082` | pulse-api (2)         |
-| prod       | `localhost:6445` | `localhost:8083` | pulse-api (3)         |
-
-```bash
-curl localhost:8083/hostname    # pulse-api on prod: which pod answered
+```text
+repos/pulse-api → Gitea + registry → Kargo → gitops → Argo CD → clusters
 ```
 
-## Layout
+## First start
 
-| Path                   | What                                          | Read by Argo CD |
-| ---------------------- | --------------------------------------------- | --------------- |
-| `cluster/`             | Compose stack, Argo CD install, bootstrap. Stands in for real cluster infra (Terraform). | No |
-| `argocd/`              | Root app, AppProjects, ApplicationSets        | Yes             |
-| `apps/pulse-api/`      | Kustomize base + one overlay per stage        | Yes             |
-| `kargo/`               | Kargo: shared steps + test templates, per-app chart, one file per app | Yes |
-| `manifests/<cluster>/` | Per-cluster namespaces, quotas, policies, RBAC | Yes            |
-
-## Tear down
+Prerequisites: Docker Compose, Git, curl, and Perl. The local account is
+deliberately insecure and only for this disposable lab: `local` / `local-123`.
 
 ```bash
-cd cluster
-docker compose down       # keep state
-docker compose down -v    # wipe everything
+./bootstrap/up.sh
 ```
 
-## Docs
+The first startup takes a few minutes. Open Gitea at http://localhost:3000,
+Argo CD at https://localhost:9000, and Kargo at https://localhost:9001. Argo
+CD and Kargo both use `admin` / `123`; accept their self-signed certificate.
 
-- [architecture.md](docs/architecture.md): clusters, Argo CD, promotion
-- [kargo.md](docs/kargo.md): promotion with Kargo, setup, adding an app
-- [kustomize-conventions.md](docs/kustomize-conventions.md): the Kustomize standard
-- [local-only.md](docs/local-only.md): run the full promotion loop without GitHub
+## Trigger a release
+
+```bash
+cd repos/pulse-api
+git add README.md
+git commit -m 'Document the first local release'
+cd ../..
+./bootstrap/publish-pulse-api.sh
+```
+
+The publisher requires a clean, committed worktree so the image tag always
+matches the commit Kargo promotes. It replaces GitHub Actions for this POC;
+adding a Gitea Actions runner later is a swap at this one build/publish step,
+not a change to the GitOps or promotion flow.
+
+## Reset
+
+This erases the local clusters, Gitea data, registry images, and the generated
+worktrees. Remove the worktrees only when you intentionally want new local Git
+histories.
+
+```bash
+cd gitops/cluster
+docker compose -f docker-compose.yaml -f docker-compose.local.yaml --profile local down -v
+cd ../..
+rm -rf gitops repos
+```
+
+The Docker Compose project is intentionally fixed, so this lab cannot run at
+the same time as the earlier `gitops-poc` stack using the same ports and
+container names.

@@ -2,8 +2,8 @@
 # Replaces the GitHub Actions build for the local-only profile.
 set -Eeuo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-app_dir="${1:-"$repo_root/workspace/pulse-api"}"
+template_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+app_dir="${1:-"$template_root/repos/pulse-api"}"
 registry="localhost:5000"
 
 if [ ! -d "$app_dir/.git" ]; then
